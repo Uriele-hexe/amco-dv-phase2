@@ -13,7 +13,7 @@
 }*/
 
 %Macro hx_check_in_dataverification (dsDMchecked=work.hx_check_dwh_datamodel
-							   ,dsDataChecks=metadata.DWH_TASSONOMIA_CONTROLLI) 
+							        ,dsDataChecks=prvmeta.DWH_TASSONOMIA_CONTROLLI) 
 				/ Des = "For any changes check if there are impact on data verification engine";
 	%local _dttimeStamp _dsOutCheckDM
 	   ;
@@ -26,31 +26,46 @@
 	%Put +----[Macro: &sysmacroname.] --------------------------+;
 
     Data _null_; 
-      Set &dsDMchecked. end=fine;
+      Set &dsDMchecked. (Where=(dwhFieldNew='D' Or (dmFieldSameT='N' And dwhFieldNew='N'))) end=fine;
       Attrib flgInPerimeter length=$1  label="Field is used in perimeter (Y/N)"
              flgInTecnical  length=$1  label="It is a tecnical field (Y/N)"
              idRule         length=$40 label="Id rule impacted"
            ;
       Retain _dsDataVerification "&dsDataChecks."
          ;
-      Declare hash ht(multidata:'yes');
-        ht.defineKey("idRecord");
-        ht.defineData("idRecord","dsDwhTable","dwhFieldName","flgInPerimeter","flgInTecnical","idRule");
-        ht.defineDone();
+      If _N_=1 Then Do;
+        Declare hash ht(multidata:'no');
+          ht.defineKey("idRecord","dwhFieldName","idRule");
+          ht.defineData("idRecord","idRule","dsDwhTable","dwhFieldName","dwhFieldNew","dmFieldSameT","flgInPerimeter","flgInTecnical");
+          ht.defineDone();
+      End;
 
       flgInPerimeter = 'N';
       flgInTecnical  = 'N';
       _dsid          = open(_dsDataVerification);
       Do While (fetch(_dsid)=0);
         IdRule          = Getvarc(_dsid,varnum(_dsid,"idRule"));
+        If ht.check(key:idRecord,key:dwhFieldName,key:"idRule") ^= 0 Then
+          _rcadd = ht.add();
         _PA             = Getvarc(_dsid,varnum(_dsid,"Perimetro_di_applicabilita"));
         _CT             = Getvarc(_dsid,varnum(_dsid,"Campi_Tecnici")); 
         flgInPerimeter  = ifc(prxmatch(cats("/",dwhFieldName,"/i"),_PA)>0,'Y','N');
         flgInTecnical   = ifc(prxmatch(cats("/",dwhFieldName,"/i"),_CT)>0,'Y','N');
-        _rcadd          = ht.add();
+        If flgInPerimeter='Y' Then Do;
+          _rcfind = ht.find(key:idRecord,key:dwhFieldName,key:"idRule");
+          %*-- Update with current values;
+          flgInPerimeter = 'Y';
+          _rcRepl = ht.replace();
+        End;
+        Else If flgInTecnical='Y' Then Do;
+          _rcfind = ht.find(key:idRecord,key:dwhFieldName,key:"idRule");
+          %*-- Update with current values;
+          flgInTecnical = 'Y';
+          _rcRepl = ht.replace();
+        End;
       End;
-      _dsid = Close(_dsid);
-      if fine then _rcout = ht.output(dataset:"work.&sysmacroname.");
+      _dsid  = Close(_dsid);
+      if fine then _rcout = ht.output(dataset:"work.&sysmacroname. (Where=(flgInPerimeter='Y' Or flgInTecnical='Y'))");
     Run;
 
     %Uscita:
