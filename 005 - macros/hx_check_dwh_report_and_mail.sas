@@ -64,6 +64,7 @@
 	  objOds.table_start();
 	    Link HeaderTable;
 
+
         _dsT = open("_listTables");
         Do While (fetch(_dsT)=0);
           dwhFieldName = GetvarC(_dsT,Varnum(_dsT,"dwhFieldName"));
