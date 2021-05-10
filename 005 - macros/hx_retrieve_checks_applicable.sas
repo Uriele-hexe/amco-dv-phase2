@@ -36,7 +36,7 @@
 	%If %sysfunc(exist(&dsListChecks.))=0 %Then %Do;
  	  %log(level = E, msg = &dsListChecks. not exists);
  	  %log(level = E, msg = Data verification engine was stopped !!);
-      %return;
+    %return;
 	%End;
 
 	%*-- Compone  where clause used to filter metadata;
