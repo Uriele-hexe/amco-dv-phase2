@@ -27,12 +27,13 @@
 options
 	/*sasautos = (SASAUTOS, "d:\DataQuality\05_SourceCode\01_Macro\base", "d:\DataQuality\05_SourceCode\01_Macro\project") mautosource*/
 	sasmstore=hx_macro mstored
+	/*hx_func.lookup*/
 	cmplib = (
 		hx_func.cmn_dv_function
 		hx_func.da_functions
+		Hx_func.dt_functions.package
 		hx_func.dataverification_dwh
 		hx_func.tablesas
-		hx_func.lookup
 	)
 	fmtsearch = (cmnfmt) mprint
 ;
@@ -118,6 +119,7 @@ Run;
 	*-- Create Table containing historical checks;
 	%if %sysfunc(exist(&histchecks.))=0 %then %create_dset_struct_from_mtd(cmn_datamodel, whrClause=%bquote(memname='HIST_CHECKS'), dsOut=&histchecks.);
 	%if %sysfunc(exist(&dsHistRepChecks.))=0 %then %create_dset_struct_from_mtd(cmn_datamodel, whrClause=%bquote(memname='HIST_CHECKS'), dsOut=&dsHistRepChecks.);
+	%if %sysfunc(exist(&dsDWHPerimeter.))=0 %then %create_dset_struct_from_mtd(cmn_datamodel, whrClause=%bquote(memname='PERIMETERS'), dsOut=&dsDWHPerimeter.);
 %mend create_checks_tables;
 %create_checks_tables;
 
