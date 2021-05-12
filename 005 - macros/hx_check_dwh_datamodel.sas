@@ -79,6 +79,7 @@
 	         dwhTable        Length=$80 label="DWH Table Name"
 	         dwhSasTable     Length=$80 label="Datiodd SAS Name"
 	         dataMapping     Length=$80 label="DWH Data Mapping"
+			 targetColumn    Length=$40 label="Name of column mapped"
 			 dwhNomeCampo    Length=$80 label="DWH Field Name"
 			 dwhTypeCampo    Length=$20 label="DWH Field Type"
 			 dmFieldName     Length=$80 label="Data Mapping field original name"
@@ -94,7 +95,7 @@
       Declare hash htout();
 	    htout.defineKey("dwhSasTable","dwhNomeCampo");
 		htout.defineData("check_direction","idRecord","dwhTable","dwhSasTable"
-		                 ,"dwhNomeCampo","dwhTypeCampo","dwhFieldNew"
+		                 ,"dwhNomeCampo","targetColumn","dwhTypeCampo","dwhFieldNew"
 						 ,"dmFieldType","dmFieldSameT");
 		htout.defineDone();
 
@@ -112,9 +113,10 @@
 		_fetch      = fetch(_dsid2);
 		%*-- Check if field is new Y = new N = already defined;
 		dwhFieldNew = ifc(_fetch=0,'N','Y');
-		Call Missing(dmFieldType,dmFieldSameT);
-		%*-- If already defined, checks eventually changement on data type;
+		Call Missing(dmFieldType,dmFieldSameT,targetColumn);
+		*-- If already defined, checks eventually changement on data type;
 		If dwhFieldNew='N' Then Do;
+		  targetColumn = Lowcase(Getvarc(_dsid2,Varnum(_dsid2,"columnTarget")));
 		  If Getvarc(_dsid2,varnum(_dsid2,"flgRaccordo"))='N' Then Do;
 		    dmFieldType = Lowcase(Getvarc(_dsid2,Varnum(_dsid2,"columnSourceType")));
 		    dmFieldType = cats(dmFieldType,'(',GetvarN(_dsid2,Varnum(_dsid2,"columnSourceLen")),')');
@@ -136,8 +138,9 @@
 	  check_direction = "DATA MAPPING -> DWH";
 	  _dsid = open(dataMapping);
 	  Do While (fetch(_dsid)=0);
-	    dwhTable    = Getvarc(_dsid,Varnum(_dsid,"tableName"));
-		dmFieldName = Getvarc(_dsid,Varnum(_dsid,"columnName"));
+	    dwhTable     = Getvarc(_dsid,Varnum(_dsid,"tableName"));
+		dmFieldName  = Getvarc(_dsid,Varnum(_dsid,"columnName"));
+		targetColumn = Lowcase(Getvarc(_dsid,Varnum(_dsid,"columnTarget")));
 		
         %*-- Get dwhSasTable name;
 	    _dsWhere = cats("Upcase(dwhTable)='",Upcase(dwhTable),"'");
