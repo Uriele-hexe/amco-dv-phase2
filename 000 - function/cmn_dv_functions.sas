@@ -28,4 +28,37 @@ Proc Fcmp outlib=hx_func.cmn_dv_function.package encrypt;
     End;
   return (a_string);
   endsub;
+
+  function fx_get_dsname_outjoin(dsMeta $, lkpGroup $,  msgFx $) $;
+		Outargs msgFx;
+		Attrib 	tableName 	Length=$80
+						dsid				Length=8
+						vLookupGrp 	Length=$40
+						vTableOut		Length=$40
+				;
+		vLookupGrp = "id_Lookup_Group";
+		vTableOut	 = "Target_Out";
+		Call missing(tableName,msgFx);
+		If not exist(dsMeta) Then msgFx = catx(' ',dsMeta,"not exists!");
+		Else Do;
+			dsid    = open(dsMeta);
+			posVlkp = varnum(dsid,vLookupGrp);
+			posVtab = varnum(dsid,vTableOut);
+
+			If posVlkp<=0 Then msgFx = catx(' ',vLookupGrp,"not exists in",dsMeta);
+			Else If posVtab<=0 Then msgFx = catx(' ',vTableOut,"not exists in",dsMeta);
+			Else Do;
+				Do While (fetch(dsid)=0 And missing(tableName));
+					If Strip(Upcase(getvarc(dsid,posVlkp))) = Strip(Upcase(lkpGroup)) Then Do;
+						If count(getvarc(dsid,posVtab),'.')=1 then
+							tableName = ifc(upcase(scan(getvarc(dsid,posVtab),1,'.')) ^= "WORK"
+															,getvarc(dsid,posVtab)
+															,' ');
+					End;
+				End;
+			End;
+			dsid = Close(dsid);
+		End;
+	return (tableName);
+	endsub;
 Run;
