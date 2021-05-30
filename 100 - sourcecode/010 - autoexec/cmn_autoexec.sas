@@ -31,6 +31,7 @@ options
 	cmplib = (
 		hx_func.cmn_dv_function
 		hx_func.da_functions
+		hx_func.dv_functions
 		Hx_func.dt_functions.package
 		hx_func.dataverification_dwh
 		hx_func.tablesas
@@ -120,28 +121,33 @@ Run;
 	%if %sysfunc(exist(&histchecks.))=0 %then %create_dset_struct_from_mtd(cmn_datamodel, whrClause=%bquote(memname='HIST_CHECKS'), dsOut=&histchecks.);
 	%if %sysfunc(exist(&dsHistRepChecks.))=0 %then %create_dset_struct_from_mtd(cmn_datamodel, whrClause=%bquote(memname='HIST_CHECKS'), dsOut=&dsHistRepChecks.);
 	%if %sysfunc(exist(&dsDWHPerimeter.))=0 %then %create_dset_struct_from_mtd(cmn_datamodel, whrClause=%bquote(memname='PERIMETERS'), dsOut=&dsDWHPerimeter.);
+	%if %sysfunc(exist(&histCtchecks.))=0 %then %create_dset_struct_from_mtd(cmn_datamodel, whrClause=%bquote(memname='HIST_CHECKS_CT'), dsOut=&histCtchecks.);
 %mend create_checks_tables;
 %create_checks_tables;
 
-*-- Import common parameters;
+*-- Import function parameters;
 %hx_import_parameters(cfgFolder=%UnQuote(&sascodeFolder.)&slash.04_Config
 					  ,cfgName=cmn_dataverification_parameters.cfg
 					  ,dtaReference=&dta_reference.);
 %Put _global_;
 
+%Put &=wkbfolder;
 *-- Change 02 Dec 2020 by UDP
 				Import Common Metadata Excel tabella dei domini
 	;
-%hx_import_cmn_metadata(wkbName   = npl_cmn_lista_domini.xlsx
+%hx_import_cmn_metadata(wkbFolder=&wkbfolder.
+                        ,wkbName   = npl_cmn_lista_domini.xlsx
 						,wbkSheet = npl_cmn_domini
 						,dsMeta   = &nplDomini.);
 
 *-- Import Common Metadata Excel;
-%hx_import_cmn_metadata(wkbName = npl_sourcedata_list.xlsx
+%hx_import_cmn_metadata(wkbFolder=&wkbfolder.
+                        ,wkbName = npl_sourcedata_list.xlsx
 						,dsMeta = &nplSourceList.);
 
 %Let metaTableName = &nplCommonDM.;
-%hx_import_cmn_metadata(wkbName = npl_cmn_data_model.xlsx
+%hx_import_cmn_metadata(wkbFolder=&wkbfolder.
+                        ,wkbName = npl_cmn_data_model.xlsx
 						,dsMeta = &metaTableName.);
 %Macro checkFlgVName;
 	%local dsid alreadyChecked
@@ -175,20 +181,3 @@ Run;
 	%End;
 %Mend;
 %checkFlgVName;
-/*
-*======================================================*
-* Formats creation from metadata table or lookup table *
-*======================================================*
-;
-%hx_create_formats(libout			   = cmnfmt
-									 ,dsSourceFmt  = &nplCommonDQ.
-									 ,startV			 = id_Ambito
-									 ,descriptionV = Ambito
-									 ,fmtName 		 = dqambit);
-
-%hx_create_formats(libout			   = cmnfmt
-									 ,dsSourceFmt  = &nplCommonDQ.
-									 ,startV			 = idRule
-									 ,descriptionV = Descrizione del controllo
-									 ,fmtName 		 = dqrules);
-*/

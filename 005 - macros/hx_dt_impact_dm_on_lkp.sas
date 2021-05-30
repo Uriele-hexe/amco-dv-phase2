@@ -158,7 +158,7 @@
 
 	  DELETEFIELD:
 	    Call Missing(_stringNew);
-        _rc  = count(_string,'-')+1;
+        _rc  = ifn(missing(_string),0,count(_string,'-')+1);
 		_sep = "   ";
 		Do _i=1 To _rc;
 		  if strip(lowcase(scan(_string,_i,'-'))) ^= strip(lowcase(colDeleted)) then do;
@@ -168,7 +168,7 @@
 		  end;
 		End;
 		Note = "Sono stati eliminati i campi";
-		_string = _stringNew;
+		_string = Strip(_stringNew);
 		Put "STEP 1: " id_Lookup= colDeleted= _string= _stringNew= _rc=;
 	  RETURN;
 	Run;
@@ -182,6 +182,7 @@
 		     timeStamp        Length=8   Label="Timestamp" format=datetime.
 		     idRecord         Length=8   Label="Id. record"
 	    ;
+		Set
       %if %sysfunc(exist(&_dsHistchangeRule.)) %then %do;
 	    &_dsHistchangeRule. (in=hist)
 	  %end;

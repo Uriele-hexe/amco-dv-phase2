@@ -12,11 +12,11 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
   function fx_check_value_missing(field_check $) $;
     Attrib fx_Rc Length=$5
 	       ;
-		fx_Rc = ifc(missing(field_check),'Y','N');
+		/*fx_Rc = ifc(missing(field_check),'Y','N');*/
 		/* CORREZIONE: NOTA 04/05/2021: Testare il flag di aggancio con il rapporto */
-		/* Nuova modifica da implementare quando si chiuderà la fase 1
-		  fx_Rc = ifc(missing(field_check) or strip(field_check)='.','Y','N');
-		*/
+		/* Nuova modifica da implementare quando si chiuderà la fase 1*/
+		  fx_Rc = ifc(missing(field_check) or strip(field_check) in ('.',''),'Y','N');
+		/**/
 		
 		/* CORREZIONE: La funzione è richiamata dalla G.4.2 che però deve essere rivista come regola di aggancio.
 		               Si esegue la inner join tra collateral e 
@@ -77,14 +77,17 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
   return (fx_Rc);
 	endsub;
 
-	function fx_check_stato_gara(dtaIscrGara,dtaScadenza,dtaRifer) $;
+	function fx_check_stato_gara(status_gar $) $;
+    Attrib fx_Rc Length=$5;
+		fx_rc = ifc(upcase(status_gar) not in ('VALIDA','ESCUSSA','SCADUTA'),'Y','N');
+  return (fx_Rc);
+	endsub;
+
+	/*function fx_check_stato_gara(dtaIscrGara,dtaScadenza,dtaRifer) $;
     Attrib fx_Rc	  Length=$5
 					 tipoGara Length=$15
 	       ;
-		   
-    /* CORREZIONE: Implementazione della logica che battezza lo stato dela Garanzia. Il nuovo algoritmo è da portare nella fase di 
-                   arricchimento
-    */				   
+   
 		   
 		tipoGara = "_ND_";
 		if dtaIscrGara <= dtaRifer And dtaScadenza >= dtaRifer Then tipoGara="VALIDA";
@@ -93,14 +96,22 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
 
 		fx_Rc = ifc(missing(tipoGara) Or tipoGara In ("_ND_"),'Y','N');
   return (fx_Rc);
-	endsub;
+	endsub;*/
 
 	function fx_check_is_pegno(codGara $, codCollateral $,des_tipo_collateral $,flgLkpColl $) $;
     Attrib fx_Rc	  Length=$5
 	       ;
 		fx_Rc = ifc(not missing(codCollateral) and flgLkpColl='N','Y','N');
-  return (fx_Rc);
+    return (fx_Rc);
 	endsub;
+
+	function fx_check_is_pegno_ipot(gradoIpotec) $;
+    Attrib fx_Rc	  Length=$5
+	       ;
+		fx_Rc = ifc(gradoIpotec<=0,'Y','N');
+    return (fx_Rc);
+	endsub;
+
 
 	function fx_check_datore_ipoteca(codGara $, desTipoGara $,ndgGarante $, flgInAnag $) $;
     Attrib fx_Rc	  Length=$5
@@ -112,6 +123,7 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
 	endsub;
 
 	/*-- Start Function Anagafe --*/
+	/*
 	function fx_check_cod_fiscale_priv (cod_fiscIva $, sae $) $;
     Attrib fx_Rc 			 Length=$5
 					 saePrivato  Length=$1
@@ -123,29 +135,22 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
 		typeCodFisc = fx_get_codfisc(cod_fiscIva);
 		%*-- set violation, if fiscal code is assigned at not private sae;
 		
-	    /* CORREZIONE: NOTA 04/05/2021: Aggiungere il test sulla lunghezza a 16 */
-
-		
+	
 		fx_rc = Ifc(strip(typeCodFisc)="CF" And saePrivato ^= 'Y','Y','N');
-  return (fx_Rc);
+     return (fx_Rc);
+	endsub;
+*/
+	function fx_check_len_fiscale (cod_fiscIva $) $;
+      Attrib fx_Rc Length=$5;
+	  fx_rc = ifc(length(strip(cod_fiscIva)) ^= 16,'Y','N');
+    return (fx_Rc);
 	endsub;
 
-	function fx_check_len_priva (cod_fiscIva $) $;
-    Attrib fx_Rc 			 Length=$5
-					 saePrivato  Length=$1
-					 typeCodFisc Length=$4
-	       ;
 
-		fx_rc 		  = '*';
-		saePrivato  = fx_get_sae_privato(put(sae,12.));
-		typeCodFisc = fx_get_codfisc(cod_fiscIva);
-		%*-- set violation, if fiscal code is assigned at private sae;
-		
-		/* CORREZIONE: NOTA 04/05/2021: Aggiungere il test sulla lunghezza a 11*/
-		
-		fx_rc = Ifc(strip(typeCodFisc)="PIVA" And saePrivato = 'Y','Y','N');
-		If fx_rc = 'N' Then 
-  return (fx_Rc);
+	function fx_check_len_priva (cod_fiscIva $) $;
+      Attrib fx_Rc Length=$5;
+	  fx_rc = ifc(length(strip(cod_fiscIva)) ^= 11,'Y','N');
+    return (fx_Rc);
 	endsub;
 
 	function fx_stato_debitore(statoDebitore $) $;
@@ -157,9 +162,9 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
   return (fx_Rc);
 	endsub;
 
-	function fx_check_gara_senza_fido (codGara $,codFido  $) $;
+	function fx_check_gara_senza_fido (flg_lkp $) $;
     Attrib fx_Rc Length=$5;
-		fx_rc = ifc(not missing(codGara) And missing(codFido),'Y','N');
+		fx_rc = ifc(flg_lkp = 'N','Y','N');
   return (fx_Rc);
 	endsub;
 
@@ -191,7 +196,7 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
 	Attrib fx_Rc Length=$5;
 		fx_rc = N;
 		If Not missing(statoDebitore) Then 
-			fx_rc = ifc(missing(dtaPassDef) Or dtaPassDef>refDate,'Y','N');
+			fx_rc = ifc(dtaPassDef>refDate,'Y','N');
   return (fx_Rc);
 	endsub;
 	/*-- End Function about Anagrafe --*/
@@ -233,18 +238,20 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
 	/*-- End Function about Immobili --*/
   
 	/*-- Start Function about Fidi --*/
-	function fx_check_fidi_vs_rapporti (flgLkp $,codFido $,codRapporto $) $;
+	/*function fx_check_fidi_vs_rapporti (flgLkp $,codFido $,codRapporto $) $;*/
+	function fx_check_fidi_vs_rapporti (flgLkp $) $;
     Attrib fx_Rc Length=$5;
 	
 	/* CORREZIONE: NOTA 04/05/2021: Testare il flag di aggancio con il rapporto */
-		fx_rc = ifc(flgLkp='Y' And not missing(codFido) And missing(codRapporto),'Y','N');
+		fx_rc = ifc(flgLkp='N' ,'Y','N');
   return (fx_Rc);
 	endsub;
 
-	function fx_check_ndg_fido(codFido $, ndg, flgLkpRapp $) $;
+	function fx_check_ndg_fido(flglkp_1_3 $) $;
     Attrib fx_Rc Length=$5;
-		*-- Exists a record joined with relation fidi / rapporto;
-		fx_rc = ifc(flgLkpRapp='Y' And not missing(codFido) And missing(ndg),'Y','N');
+		*-- Exists a record joined with relation fidi / rapporto; 
+		/*fx_rc = ifc(flgLkpRapp='Y' And not missing(codFido) And missing(ndg),'Y','N');*/ /*modificato il 17mag2021*/
+		fx_rc = ifc(flglkp_1_3='Y','Y','N');
   return (fx_Rc);
 	endsub;
 
@@ -339,7 +346,14 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
 			_baseAstaSup = impBaseAsta * (1+(pctBase/100));
 			fx_rc = ifc(impVendita<=_baseAstaInf or impVendita>_baseAstaSup,'Y','N');
 		end;
-  return (fx_Rc);
+	return (fx_Rc);
+	endsub;
+	
+	/*aggiunta da Giorgio - 17mag2021*/
+	function fx_check_impasta_ctu (importo, valoreCTU) $;
+	 Attrib fx_Rc					Length=$5;
+			fx_rc = ifc(importo <= (valoreCTU/2),'Y','N');
+	 return (fx_Rc);
 	endsub;
 
 	/*-- End Function about Aste e Lotti --*/
@@ -376,5 +390,17 @@ Proc fcmp outlib=hx_func.dataverification_dwh.package encrypt;
 	endsub;
 
 	/*-- End Function about Lotti --*/
+	
+	function fx_check_flg_lookup(flgLkp $) $;
+    Attrib fx_Rc Length=$5;
+		fx_rc = ifc(flgLkp='N','Y','N');
+  return (fx_Rc);
+	endsub;
+
+	function fx_check_stato_gara(status_gar $) $;
+    Attrib fx_Rc Length=$5;
+		fx_rc = ifc(upcase(status_gar) not in ('VALIDA','ESCUSSA','SCADUTA'),'Y','N');
+  return (fx_Rc);
+	endsub;
 
 Quit;

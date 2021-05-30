@@ -91,5 +91,12 @@
 	%end;
 
 %mend;
-
 %dwh_010_t_create_recon_table;
+%Let tableOutName = %sysfunc(fx_get_dsname_outjoin(&meta_dslkp_name.,RECON.TABLE,msgFunction));
+%Put &=tableOutName;
+%hx_create_formats (libout		  = work
+	 				,dsSourceFmt  = &tableOutName.
+	 			    ,startV	      = cod_portafoglio_gest
+	 				,descriptionV = des_portafoglio_gest
+	 				,fmtName 	  = portafoglio);
+

@@ -17,7 +17,7 @@
 }*/
 
 %Macro  hx_dv_mapping_sourcedata () / 
-  store Des = "Check for any changes on the dwh table data model";
+  store secure Des = "Check for any changes on the dwh table data model";
 	%local _dttimeStamp _dataProvider _dataMapping _dmMapping _dataImport _dsimp
 	   ;
 	%Let _dataProvider = %upcase(%sysfunc(dequote(&dataProvider.)));
@@ -197,7 +197,7 @@
 	  %Put | Mapping data regarding %UnQuote(&_dataProvider.)         |;
 	  %Put | Data Mapping : &_dataMapping.                             |;
 	  %Put | .........................................................|;
-	  %Put | Started at : %Sysfunc(PutN(&_dttimeStamp.,datetime.))    |;
+	  %Put | Ended at : %Sysfunc(PutN(&_dttimeStamp.,datetime.))    |;
 	  %Put +----[Macro: &sysmacroname.] ------------------------------+;
 %Mend;
 /*

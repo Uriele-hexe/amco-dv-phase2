@@ -1,12 +1,12 @@
-*============================================================================================
-* Client Name: AMCO SpA
-* Project    : Framework di Data Verification
-*--------------------------------------------------------------------------------------------
-* Program name: dwh_import_metadata_provider.sas
-* Author      : Uriele De Piano Hexe SpA 02 October 2020
-* Description : Import MPS's metadata
-*============================================================================================
-;
+/*============================================================================================
+ * Client Name: AMCO SpA
+ * Project    : Framework di Data Verification
+ *--------------------------------------------------------------------------------------------
+ * Program name: dwh_import_metadata_provider.sas
+ * Author      : Uriele De Piano Hexe SpA 02 October 2020
+ * Description : Import MPS's metadata
+ *============================================================================================*/
+
 %Let wkbFolder  = %UnQuote(&projectFolder.)&slash.02_Metadati&slash.&dataProvider.&slash.Excel;
 /*-- Dichiarata in config 
   %Let metaFolder = %UnQuote(&projectFolder.)&slash.02_Metadati&slash.&dataProvider.&slash.Tabledata;
@@ -48,8 +48,17 @@
 
     %if &metadataTable.=&dsMetaRacc. %then %goto uscita;
 
+	%if &metadataTable.=&dsDwhMetaChecks. %then %do;
+	  Data &dsDwhMetaChecks. ;
+	    Attrib "Data Provider"n Length=$10 Label="Data Provider";
+	    Set &dsDwhMetaChecks. (Where=(Upcase(&dataProvider)=:'S' or Upcase(&dataProvider)=:'Y'));
+        "Data Provider"n = Upcase("&dataProvider.");
+	  Run;
+	%end;
+
 	Proc Contents data=&metadataTable. out=_metaDataContents (Keep=NAME) noprint;
 	Run;
+
 	%Let _dsid = %sysfunc(Open(_metaDataContents));
 	Data &metadataTable.(Where=(not missing(data_Provider))); 
 		Set &metadataTable. (Rename=(
@@ -74,15 +83,97 @@
 Options mprint;
 *-- Import Data Mapping raccordo;
 %hx_import_meta_provider(metadataFile=%Unquote(&dataProvider.)_data_model_raccordo.xlsx
-												,metadataTable=&dsMetaRacc.);
+						,metadataTable=&dsMetaRacc.);
 
 *-- Import Lookup Rules;
+Proc Delete data=&meta_dslkp_name.; Run;
 %hx_import_meta_provider(metadataFile=%Unquote(&dataProvider.)_list_lookup_rules.xlsx
-												,metadataTable=&meta_dslkp_name.);
+						,metadataTable=&meta_dslkp_name.);
 
 %*-- Import metadata regarding rules;
-%hx_import_meta_provider(metadataFile=%Unquote(&dataProvider.)_tassonomia_controlli.xlsx
-												,metadataTable=&dsDwhMetaChecks.,wbkSheet=Elenco controlli di business);
+*-- ATTENZIONE IL PANEL DOVRA ESSERE SPOSTATO SOTTO LA CARTELLA COMMON QUANDO FINIREMO LE MODIFICHE;
+%Let _panelName = amco panel dei controlli.xlsx; 
+Data _null_;
+  *_folderInput = "&METACOMMONFOLDER.";
+   _folderInput = "d:\dataquality\99 - rrhh\uriele\Tassonomia controlli";
+   _folderOut   = "&wkbFolder.";
+   _panelName   = "&_panelName.";
+   _cmdCopy     = catx(' ',"copy",cats('"',_folderInput,"&slash.",_panelName,'"'),cats('"',_folderOut,"&slash.",'"'));
+   rc           = system(_cmdCopy);
+   Put _cmdCopy= rc=;
+Run;
+Proc Delete data=&dsDwhMetaChecks.; Run;
+%hx_import_meta_provider(metadataFile=&_panelName.
+						,metadataTable=&dsDwhMetaChecks.
+                        ,wbkSheet=Dizionario controlli);
+
+Data &dsDwhMetaChecks. (Keep=Data_Provider 
+						     id_Ambito 
+							 Ambito
+						     IdRule 
+						     Principio 
+							 Controllo
+						     Descrizione_Controllo_per_Report 
+                             Periodicita  
+						     Perimetro_di_applicabilita 
+							 Campi_Tecnici 
+							 Nome_Funzione 
+							 Regola_Tecnica_violata 
+							 Severity 
+                             Soglia_inferiore 
+							 Soglia_Superiore 
+							 Data_Rilascio 
+							 Data_ultimo_aggiornamento 
+							 Data_Validita_From 
+							 Data_validita_To 
+                             Applicabilita_Controllo 
+							 Note_Applicabilita)
+	; Set &dsDwhMetaChecks. (Rename=(id_rule=idRule 
+									 data_valid_to=Data_validita_To
+									'Entità'n=ambito
+                             ))
+		;
+	Attrib data_validita_from Length=8 Label="Valid from" format=ddmmyy10.
+           severity           Length=8 Label="Severity"
+	       Soglia_inferiore   Length=8 Label="Soglia inferiore"
+		   Soglia_superiore   Length=8 Label="Soglia Superiore"
+		   Data_ultimo_aggiornamento Length=8 Label="Data ultimo aggiornamento" format=ddmmyy10.
+
+       ;
+	Severity=2;
+	Call Missing(Soglia_inferiore,Soglia_superiore);
+	Data_ultimo_aggiornamento = Data_Rilascio;
+	data_validita_from = input(data_valid_from,ddmmyy10.);
+Run;
+
+/*
+*======================================================*
+* Formats creation from metadata table or lookup table *
+*======================================================*/
+;
+%hx_create_formats (libout		  = work
+	 				,dsSourceFmt  = &dsDwhMetaChecks.
+	 			    ,startV	      = idRule
+	 				,descriptionV = controllo
+	 				,fmtName 	  = fmtcontrollo);
+
+%hx_create_formats (libout		  = work
+	 				,dsSourceFmt  = &dsDwhMetaChecks.
+	 			    ,startV	      = idRule
+	 				,descriptionV = ambito
+	 				,fmtName 	  = ambito);
+/*
+%hx_create_formats (libout		  = work
+	 				,dsSourceFmt  = &dsDwhMetaChecks.
+	 			    ,startV	      = idRule
+	 				,descriptionV = severity
+	 				,fmtName 	  = severity);
+*/
+%hx_create_formats (libout		  = work
+	 				,dsSourceFmt  = &dsDwhMetaChecks.
+	 			    ,startV	      = idRule
+	 				,descriptionV = Principio
+	 				,fmtName 	  = Principio);
 
 /*
 +--[Post Procesing importing metadata] ---------------------------+

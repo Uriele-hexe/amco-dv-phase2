@@ -20,7 +20,7 @@
                                                                                                                                                                                                                                                                 
 %Macro hx_set_flag_distinct(tableOut = _NULL_                                                                                                                                                                                                                
                            ,Keys     = _NULL_                                                                                                                                                                                                                            
-                           ,flagVarName = flg) / /*store secure*/; 
+                           ,flagVarName = flg) / store secure; 
                                                                                                                                                                                                                                                                 
 	%Local checkOnKeys tableNameOut checkMessage lastKey _timeStamp _allkeys                                                                                                                                                                                                 
 			;                                                                                                                                                                                                                                                            

@@ -17,6 +17,7 @@
     %Let _dttimeStamp  = %sysfunc(datetime());
 	%Put +----[Macro: &sysmacroname.] ------------------------------+;
 	%Put | Create attrib statment dinamically                       |;
+	%Put | Data model: &dsName.                                     |;
 	%Put | .........................................................|;
 	%Put | Started at : %Sysfunc(PutN(&_dttimeStamp.,datetime.))    |;
 	%Put +----[Macro: &sysmacroname.] ------------------------------+;
@@ -30,7 +31,7 @@
       %Let _varname = %sysfunc(varname(&_dsid.,&_nvar.));
       %Let _vartype = %sysfunc(vartype(&_dsid.,&_nvar.));
       %Let _varlen  = %sysfunc(varlen(&_dsid.,&_nvar.));
-      %Let _varlab  = "%sysfunc(varlabel(&_dsid.,&_nvar.))";
+      %Let _varlab  = %sysfunc(varlabel(&_dsid.,&_nvar.));
       %Let _varfmt  = %sysfunc(varfmt(&_dsid.,&_nvar.));
       
       %If &_vartype.=C %Then %Do;
@@ -39,13 +40,13 @@
       %Else %Do;
         %Let _varType = 8;
       %End;
-      %If &_varlab. ne ""  %Then %Do;
-        %Let _varLab = %NrQuote(Label=&_varlab.);
+      %If "%UnQuote(&_varlab.)" ne "" And %length(&_varlab.) %Then %Do;
+        %Let _varLab = %NrQuote(Label="&_varlab.");
       %End;
-      %If &_varfmt. ne %Then %Do;
+      %If "%UnQuote(&_varfmt.))" ne "" And %length(&_varfmt.)>0 %Then %Do;
         %Let _varfmt = %NrQuote(Format=&_varfmt.);
       %End;
-      Attrib &_varname. Length=&_vartype. &_varlab. /*&_varfmt.*/;
+      Attrib &_varname. Length=&_vartype. &_varlab. &_varfmt.;
     %End;
     %Let _dsid = %Sysfunc(Close(&_dsid.));
 

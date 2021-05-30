@@ -61,4 +61,29 @@ Proc Fcmp outlib=hx_func.cmn_dv_function.package encrypt;
 		End;
 	return (tableName);
 	endsub;
+
+    /* Checks if a value is in of range */
+    function fx_check_imp_fuori_scala(IMPORTO) $;
+      Attrib fx_return Length=$1
+             rng_limit_inf Length=8
+             rng_limit_sup Length=8
+       ;
+	  if symexist("rng_limit_inf")=0 then do;
+	    Put "+-----[Function: fx_check_imp_fuori_scala] -------------------------+";
+		Put "| Missing parameter: rng_limit_inf, default value will be set at 1  |";
+	    Put "+-----[Function: fx_check_imp_fuori_scala] -------------------------+";
+		rng_limit_inf = 1;
+	  end;
+	  else rng_limit_inf = Symget("rng_limit_inf");
+
+	  if symexist("rng_limit_sup")=0 then do;
+	    Put "+-----[Function: fx_check_imp_fuori_scala] -------------------------------+";
+		Put "| Missing parameter: rng_limit_sup, default value will be set at 9999999  |";
+	    Put "+-------------------------------------------------------------------------+";
+		rng_limit_sup = 9999999;
+	  end;
+	  else rng_limit_sup = Symget("rng_limit_sup");
+      fx_return = ifc(^(IMPORTO>rng_limit_inf And IMPORTO<rng_limit_sup),'Y','N');
+	return (fx_return);
+    endsub;
 Run;

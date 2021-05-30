@@ -17,7 +17,7 @@
 /*%Macro hx_run_checks_list(idAmbito=_ALL_,dsTarget=_NULL_,dsListChecks=_NULL_)
            / Des="Retrieve list of controls can be applied";*/
 
-%Macro hx_retrieve_checks_applicable() / Des="Retrieve list of controls can be applied";
+%Macro hx_retrieve_checks_applicable() / store secure Des="Retrieve list of controls can be applied";
 	%Local _tmpStamp _wclsClause
 			;
     %Let idAmbito     = %sysfunc(dequote(&idAmbito.));
@@ -42,7 +42,7 @@
 	%*-- Compone  where clause used to filter metadata;
     %Let _wclsClause = %NrQuote(Not missing%(Data_Rilascio%) And Year%(Data_Rilascio%) < 2999);
 	%If %symexist(dta_reference) %Then %Do;
-		%Let _wclsClause=%NrQuote(Not missing%(Data_Rilascio%) And Data_Rilascio <= "&dta_reference."d And %(Data_Validita_From <= "&dta_reference."d And Data_validita_To >= "&dta_reference."d%));
+		%Let _wclsClause=%NrQuote(Not missing%(Data_Rilascio%) /*And Data_Rilascio <= "&dta_reference."d*/ And %(Data_Validita_From <= "&dta_reference."d And Data_validita_To >= "&dta_reference."d%));
 	%End;
     %If "%Upcase(&idAmbito.)" ne "_ALL_" %Then %Do;
 	  %Let _wclsClause=%NrQuote(&_wclsClause. And id_Ambito="&idAmbito.");
@@ -68,6 +68,11 @@
 	  %log(level = E, msg = &dsListChecks. no records for &_wclsClause.);
       %log(level = E, msg = Data verification engine was stopped !!);
       %Return;
+	%End;
+	%If %sysfunc(exist(&dsTarget.))=0 %Then %Do;
+	  %log(level = E, msg = &&dsTarget. not exists);
+    %log(level = E, msg = Data verification engine was stopped !!);
+    %Return;
 	%End;
 
     Data _null_;
@@ -116,11 +121,16 @@
         *-- Check applicablity;
         Do While(Fetch(_dsf)=0);
           nomeCampo = GetvarC(_dsf,varnum(_dsf,"nomeCampo"));
-          if prxmatch(cats('/',nomeCampo,"/i"),_perimeter)>0 then
-            listOfPerimeter = catx('-',listOfPerimeter,nomeCampo);
-
-          if prxmatch(cats('/',nomeCampo,"/i"),_tecfields)>0 then 
-            listOfCT = catx('-',listOfCT,nomeCampo);
+          _rc = prxmatch(cats('/',nomeCampo,"/i"),_perimeter);
+          if _rc>0 then do;
+            if strip(lowcase(scan(substr(_perimeter,_rc),1,'#')))=strip(lowcase(nomeCampo)) then
+              listOfPerimeter = catx('-',listOfPerimeter,nomeCampo);
+          end;
+          _rc = prxmatch(cats('/',nomeCampo,"/i"),_tecfields);
+          if _rc>0 then do;
+            if Strip(lowcase(scan(substr(_tecfields,_rc),1,'-')))=Strip(lowcase(nomeCampo)) then 
+              listOfCT = catx('-',listOfCT,nomeCampo);
+          end;
         End;
         %*-- Update flag executable;
         isExecutable = 'Y';
@@ -133,19 +143,22 @@
           _numFinPerim = count(_perimeter,'#')/2;
           If _numFinPerim ^= count(listOfPerimeter,'-')+1 Then Do;
             isExecutable   = 'N';
-            noteExecutable = catx(',',noteExecutable,"Not all fields included in perimeter are into data contents");
+            *--noteExecutable = catx(',',noteExecutable,"Not all fields included in perimeter are into data contents");
+            noteExecutable = "Not all fields included in perimeter are into data contents";
           End;
         End;
         
         *-- Check how many fields are included in technical fields;
         If missing(_tecfields) Then Do;
           isExecutable   = 'N';
-          noteExecutable = catx(',',noteExecutable,"Technical fields needs to be compiled. It can't be empty");
+          *--noteExecutable = catx(',',noteExecutable,"Technical fields needs to be compiled. It can't be empty");
+          noteExecutable = "Technical fields needs to be compiled. It can't be empty";
         End;
         Else Do;
           If (count(_tecfields,'-') ^= count(listOfCT,'-')) or missing(listOfCT) Then Do;
             isExecutable   = 'N';
-            noteExecutable = catx(',',noteExecutable,"Not all fields included in tecnical fields are into data contents");
+            *--noteExecutable = catx(',',noteExecutable,"Not all fields included in tecnical fields are into data contents");
+            noteExecutable = "Not all fields included in tecnical fields are into data contents";
           End;
         End;
 
@@ -173,12 +186,17 @@
                ,b.noteExecutable
                ,b.listOfPerimeter as includeInPerim "Fields included in perimeter"
                ,b.listOfCT as includeInTech "Fields included in technical fields"
+			   ,catx('_',"flgIdRule",prxchange("s/[.]/_/",-1,Strip(idRule))) as flgName
+			   ,case 
+            when (Perimetro_di_applicabilita Is Not Null) Then Compbl(prxchange("s/[\#]/ /",-1,Strip(Perimetro_di_applicabilita))) 
+				    else "_null_"
+			    end as PerimetroApplicabilita
           From _metaCheckRueles as a Left Join
                _functionStatus as b 
             On a._idRecordRule = b._idRecordRule
             ;
       Drop Table _functionStatus;
-      Drop Table targetDataModel;
+      *--Drop Table targetDataModel;
     Quit;
 
 	%Let _tmpStamp = %sysfunc(putn(%sysfunc(datetime()),datetime.));
@@ -186,6 +204,7 @@
 	%Put | Retrieve list of controls can be applied        |;
 	%Put | idAmbito	: &idAmbito.	     			       |;
 	%Put | Metadata	: &dsListChecks.				       |;
+	%Put | List of applicability	: work.&sysmacroname.  |;
 	%Put |.................................................|;
 	%Put | Ended at: &_tmpStamp.;
 	%Put +-------------------------------------------------+;

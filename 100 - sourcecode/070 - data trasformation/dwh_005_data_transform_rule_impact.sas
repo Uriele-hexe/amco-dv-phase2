@@ -39,6 +39,7 @@
 	  %Put | Started at: &_tmpStamp.                            |;
 	  %Put +----------------------------------------------------+;
 %Mend;
+Options mprint;
 %hx_dwh_check_lookup();
 
 
