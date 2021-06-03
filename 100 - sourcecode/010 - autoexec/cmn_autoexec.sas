@@ -34,6 +34,7 @@ options
 		hx_func.dv_functions
 		Hx_func.dt_functions.package
 		hx_func.dataverification_dwh
+		hx_func.dataverification_dwh.package
 		hx_func.tablesas
 	)
 	fmtsearch = (cmnfmt) mprint

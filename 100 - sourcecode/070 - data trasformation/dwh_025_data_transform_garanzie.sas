@@ -33,16 +33,17 @@ Run;
 *---- APPENA E CONCLUSA QUESTA FASE e ci danno la fase due;
 
 Data _singleGara_ (Keep=dta_riferimento cod_istituto cod_garanzia max_grado_ipot max_grado_sost
-                        grado_ammesso status_gara_derived); Set &tableOutName.;
+                        grado_ammesso has_gravami_miss status_gara_derived); Set &tableOutName.;
   Attrib  max_grado_ipot      Length=8   Label="Grado Ipoteca MAX"
           max_grado_sost      Length=8   Label="Grado Sostanziale MAX"
           status_gara_derived Length=$80 Label="Stato Garanzia derivato" 
           grado_ammesso       Length=8	 Label="Grado ammesso derivato dalla macro GRADO_IPO_AMMISSIBILE"
+		  has_gravami_miss    Length=$1  Label="Esiste almeno un gravame non valorizzato Y/N"
           ;
 
     ;
   By dta_riferimento cod_istituto cod_garanzia;
-  Retain max_grado_ipot max_grado_sost . status_gara_derived ' ' grado_ammesso &GRADO_IPO_AMMISSIBILE.
+  Retain max_grado_ipot max_grado_sost . status_gara_derived ' ' grado_ammesso &GRADO_IPO_AMMISSIBILE. has_gravami_miss ' '
     ;
   *-- Retrieve Stato Garanzia;
   if first.cod_garanzia then do;
@@ -54,9 +55,11 @@ Data _singleGara_ (Keep=dta_riferimento cod_istituto cod_garanzia max_grado_ipot
       status_gara_derived='NON VALIDA';
     end;
     Call Missing(max_grado_ipot,max_grado_sost);
+	has_gravami_miss = 'N';
   end;
   max_grado_ipot = max(num_grado_ipoteca,max_grado_ipot);
   max_grado_sost = max(num_grado_sost,max_grado_sost);
+  if missing(des_gravami) Then has_gravami_miss='Y';
   if last.cod_garanzia then output;
 Run;
 *-- Rewrite table in staging;
@@ -64,12 +67,13 @@ Data &tableOutName.; Set &tableOutName. _singleGara_ (Obs=0);
   If _N_=1 Then Do;
     Declare hash ht(dataset:"_singleGara_");
       ht.defineKey("dta_riferimento","cod_istituto","cod_garanzia");
-      ht.defineData("max_grado_ipot","max_grado_sost","grado_ammesso","status_gara_derived");
+      ht.defineData("max_grado_ipot","max_grado_sost","grado_ammesso","status_gara_derived","has_gravami_miss");
       ht.defineDone();
   End;
   if ht.find(key:dta_riferimento,key:cod_istituto,key:cod_garanzia)=0 then do;
     num_grado_ipoteca = max_grado_ipot;
     num_grado_sost    = max_grado_sost;
+	if has_gravami_miss='Y' Then Call Missing(des_gravami);
   end;
 Run;
 %hx_set_portfolio (dsName=&tableOutName.);

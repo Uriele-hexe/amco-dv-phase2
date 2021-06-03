@@ -128,8 +128,14 @@
           end;
           _rc = prxmatch(cats('/',nomeCampo,"/i"),_tecfields);
           if _rc>0 then do;
-            if Strip(lowcase(scan(substr(_tecfields,_rc),1,'-')))=Strip(lowcase(nomeCampo)) then 
-              listOfCT = catx('-',listOfCT,nomeCampo);
+            _ncampit = count(_tecfields,'-')+1;
+            Do _i=1 to _ncampit;
+              /*-- if Strip(lowcase(scan(substr(_tecfields,_rc),1,'-')))=Strip(lowcase(nomeCampo)) then */
+              if Strip(lowcase(scan(_tecfields,_i,'-')))=Strip(lowcase(nomeCampo)) then do;
+                listOfCT = catx('-',listOfCT,nomeCampo);
+                leave;
+              end;
+            End;
           end;
         End;
         %*-- Update flag executable;

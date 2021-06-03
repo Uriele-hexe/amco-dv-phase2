@@ -70,22 +70,24 @@ Data datiStg.DWH_COUNTERPARTIES;
     Call Missing(stato_debitore);
     if not missing(stato_debitore_dwh) then
       stato_debitore = ifc(htCS.find(key:stato_debitore_dwh)=0,code,"_NC_");
-    
     *-- [version: 1.1] -- [End] ---------;
 Run;
-
-Proc Sql;
-  Create Table _DWH_COUNTERPARTIES_SD As
-    Select stato_debitore 
-	       ,stato_debitore_dwh
-	       ,Count(*) as nrecord
-	  From datiStg.DWH_COUNTERPARTIES
-	  Group by 1,2
-	  ;
-Quit;
 
 %hx_set_portfolio (dsName=datiStg.DWH_COUNTERPARTIES);
 Options mprint;
 %hx_set_flag_distinct(tableOut    = datiStg.DWH_COUNTERPARTIES
                      ,Keys        = %NrQuote(dta_riferimento cod_istituto ndg_debitore cod_portafoglio_gest idRecord)
                      ,flagVarName = flg_f_cpy);
+
+Proc Sql;
+  Create Table _DWH_COUNTERPARTIES_SD As
+    Select flg_f_cpy
+	       ,cod_portafoglio_gest
+           ,stato_debitore 
+	       ,stato_debitore_dwh
+	       ,Count(*) as nrecord
+	  From datiStg.DWH_COUNTERPARTIES
+	  Group by 1,2,3,4
+	  ;
+Quit;
+

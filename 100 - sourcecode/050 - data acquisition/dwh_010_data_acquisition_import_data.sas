@@ -30,7 +30,9 @@
 	%Put +---------------------------------------------------------+;
  
     %*-- Call function that import DWH Table;
-	%Let _datiodd = work;
+	%Let _datiodd = datiodd;
+	Proc Datasets lib=&_datiodd. nolist kill;
+	Quit;
     %Let _rcImportData = %sysfunc(fx_da_import_sourcedata("&_datiodd."));
 
     %*-- Split return code and name of temporary table trace;
@@ -56,9 +58,9 @@
       _dsid = close(_dsid);
 	Run;
 
-    %*-- Call function that normalize data model of DWH Tables;
 	Proc Datasets lib=datiwip nolist kill;
 	Quit;
+    %*-- Call function that normalize data model of DWH Tables;
     %Let _rcImportData = %sysfunc(fx_da_mapping_sourcedata("datiwip","&_dsTempTrace."));
 
     %*-- Split return code and name of temporary table trace;

@@ -93,6 +93,7 @@ Proc Delete data=&meta_dslkp_name.; Run;
 %*-- Import metadata regarding rules;
 *-- ATTENZIONE IL PANEL DOVRA ESSERE SPOSTATO SOTTO LA CARTELLA COMMON QUANDO FINIREMO LE MODIFICHE;
 %Let _panelName = amco panel dei controlli.xlsx; 
+/*
 Data _null_;
   *_folderInput = "&METACOMMONFOLDER.";
    _folderInput = "d:\dataquality\99 - rrhh\uriele\Tassonomia controlli";
@@ -101,7 +102,7 @@ Data _null_;
    _cmdCopy     = catx(' ',"copy",cats('"',_folderInput,"&slash.",_panelName,'"'),cats('"',_folderOut,"&slash.",'"'));
    rc           = system(_cmdCopy);
    Put _cmdCopy= rc=;
-Run;
+Run;*/
 Proc Delete data=&dsDwhMetaChecks.; Run;
 %hx_import_meta_provider(metadataFile=&_panelName.
 						,metadataTable=&dsDwhMetaChecks.
