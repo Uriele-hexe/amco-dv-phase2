@@ -193,8 +193,17 @@
   Data &histChecks.;
     Set &histChecks. &_dsSummarizeCheck.;
   Run;
-  Data &dsHistRepChecks.;
-    Set &dsHistRepChecks. &_dsSummarizeCheck.;
+  Data &dsHistRepChecks. (Drop=_:);
+    Set &dsHistRepChecks. &_dsSummarizeCheck.
+	    ;
+	If _N_=1 Then Do;
+	  declare hash htp(dataset:"datistg.all_reconnection_table",ordered:"yes");
+	    htp.defineKey("cod_portafoglio_gest");
+		htp.defineData("des_portafoglio_gest");
+		htp.defineDone();
+	End;
+	if cod_portafoglio_gest="_ALL_" Then des_portafoglio_gest = "PORTAFOGLIO TOTALE";
+    else _rc = htp.find(key:cod_portafoglio_gest);
   Run;
 
   %Uscita:

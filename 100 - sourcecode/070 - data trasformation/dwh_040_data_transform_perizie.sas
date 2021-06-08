@@ -21,3 +21,11 @@
 %hx_set_flag_distinct(tableOut    = &tableOutName.
                      ,Keys        = %NrQuote(dta_riferimento cod_istituto cod_perizia cod_portafoglio_gest idRecord)
                      ,flagVarName = flg_f_perizia);
+
+%Let idLkp = LO.1;
+%hx_get_lookup_group(dsMtd=&meta_dslkp_name.,idLookupGroup=&idLkp.);
+%Let tableOutName = %sysfunc(fx_get_dsname_outjoin(&meta_dslkp_name.,&idLkp.,msgFunction));
+%hx_set_portfolio (dsName=&tableOutName.);
+%hx_set_flag_distinct(tableOut    = &tableOutName.
+                     ,Keys        = %NrQuote(dta_riferimento cod_istituto cod_collateral cod_portafoglio_gest idRecord)
+                     ,flagVarName = flg_f_valutazioni);

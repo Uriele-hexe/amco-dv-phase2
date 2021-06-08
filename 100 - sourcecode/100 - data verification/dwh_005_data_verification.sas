@@ -55,7 +55,7 @@
 	  Drop Table _dmmodel_;
 	Quit;
 	%Let _tmpStamp = %sysfunc(datetime());
-    Data &histCtchecks.(Keep=&_campiHist.); 
+    Data &histCtchecks.(Keep=&_campiHist.) ;
 	  Attrib dta_reference Length=8 Label="Data Reference" format=ddmmyy10.
            %if %symexist(cod_ist) %then %do;
 			 cod_ist Length=8 Label="Codice Istituto"
@@ -107,8 +107,26 @@
 %hx_dwh_run_check_lists(idAmbito=A,dsTarget=datistg.DWH_COUNTERPARTIES);
 %hx_dwh_run_check_lists(idAmbito=F,dsTarget=datistg.DWH_FIDI);
 %hx_dwh_run_check_lists(idAmbito=G,dsTarget=datistg.DWH_GARANZIE);
+
+*-- Regola I.10.1;
+%hx_dwh_run_check_lists(idAmbito=I,dsTarget=datistg.DWH_PERIZIE_LOTTI);
+Proc Sort data=work.HX_DV_SUMM_DETAILS_CHECKS (Where=(idRule="I.10.1" And Not missing(nRecPerimeter) And not missing(nOccurs))) out=_checkImm2;
+  By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
+Run;
 %hx_dwh_run_check_lists(idAmbito=I,dsTarget=datistg.DWH_IMMOBILI_PERIZIE_CTP);
-%hx_dwh_run_check_lists(idAmbito=L,dsTarget=datistg.DWH_PERIZIE);
+Proc Sort data=work.HX_DV_SUMM_DETAILS_CHECKS (Where=(Not missing(nRecPerimeter) And not missing(nOccurs))) out=_checkImm1;
+  By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
+Run;
+Proc Sort data=&dsHistRepChecks.;
+  By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
+Run;
+Data &dsHistRepChecks.; Merge &dsHistRepChecks. 
+                              _checkImm1 (Drop=des_portafoglio_gest) 
+                              _checkImm2 (Drop=des_portafoglio_gest);
+  By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
+Run;
+
+%hx_dwh_run_check_lists(idAmbito=L,dsTarget=datistg.DWH_LOTTI);
 %hx_dwh_run_check_lists(idAmbito=P,dsTarget=datistg.DWH_PERIZIE);
 %hx_dwh_run_check_lists(idAmbito=PE,dsTarget=datistg.DWH_PEGNI);
 %hx_dwh_run_check_lists(idAmbito=R,dsTarget=datistg.DWH_RAPPORTI);
@@ -129,7 +147,9 @@ Run;
 Proc Sort data=&dsHistRepChecks.;
   By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
 Run;
-Data &dsHistRepChecks.; Merge &dsHistRepChecks. _checksAste1 _checksAste2;
+Data &dsHistRepChecks.; Merge &dsHistRepChecks. 
+                              _checksAste1 (Drop=des_portafoglio_gest) 
+                              _checksAste2 (Drop=des_portafoglio_gest) ;
   By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
 Run;
 *--------------------------------------------------------*

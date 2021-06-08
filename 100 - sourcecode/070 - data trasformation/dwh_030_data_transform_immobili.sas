@@ -22,38 +22,65 @@
 %*-- Retrieve table created by lookup rules;
 %Let tableOutName = %sysfunc(fx_get_dsname_outjoin(&meta_dslkp_name.,I.1,msgFunction));
 
-*-- Estrazione degli Immobili con associati una o più controparti debitori;
-Proc Sort data=&tableOutName. (Where=(flgLkp_I_1_5='Y'))
-           out=immobiliConProcedure (keep=idRecord cod_collateral cod_procedura cod_garanzia cod_fido cod_rapporto ndg_debitore flgLkp_I_1_11 dta_apertura_procedura dta_chiusura_procedura dta_ins_fase dta_ult_var_fase dta_riferimento);
-  by cod_collateral;
-Run;
-*-- Considera le procedure aperte come dta_chiusura_procedura missing oppure dta_chiusura_procedura>data riferimento;
-Data datistg.DWH_IMMOBILI_IN_PROCEDURA; Set immobiliConProcedure (Where=(flgLkp_I_1_11='Y'));
-  Attrib flgProcClose    Length=$1 Label="Flag procedura chiusa Y/N"
-         nGiorniApertura Length=8  Label="Nr. di giorni di apertura in procedura" format=commax12.
-         nMesiApertura   Length=8  Label="Nr. di mesi di apertura in procedura" format=commax12.
-         nAnniApertura   Length=8  Label="Nr. di anni di apertura in procedura" format=commax12.
-      ;
-  flgProcClose =ifc(not missing(dta_chiusura_procedura) and dta_chiusura_procedura<=dta_riferimento,'Y','N');
-  format ndg_debitore 12.;
-  by cod_collateral;
-  nGiorniApertura = intck("day",dta_apertura_procedura,dta_riferimento);
-  nMesiApertura   = intck("month",dta_apertura_procedura,dta_riferimento);
-  nAnniApertura   = intck("year",dta_apertura_procedura,dta_riferimento);
+*-- Lookup tra immobili e procedure per applicare la regola che verifica quanti anni una ctp è in procedura;
+%hx_get_lookup_group(dsMtd=&meta_dslkp_name.,idLookupGroup=IP.1);
+%*-- Retrieve table created by lookup rules;
+%Let tableOutProc = %sysfunc(fx_get_dsname_outjoin(&meta_dslkp_name.,IP.1,msgFunction));
+Proc Sort data=&tableOutProc.;
+  By dta_riferimento cod_istituto cod_collateral cod_sub_collateral;
 Run;
 
-Data &tableOutName.; Set &tableOutName.;
+*-- Calculate no of years;
+Data &tableOutProc. (Drop=maxAnniInProc dta_apertura_procedura_max dta_chiusura_procedura_max cod_procedure_max cod_pratica_max)
+    _sintCollateral (Keep=flgLkp_ip_1_3 dta_riferimento cod_istituto cod_collateral cod_sub_collateral maxAnniInProc dta_apertura_procedura_max dta_chiusura_procedura_max cod_procedure_max cod_pratica_max);  
+    Set &tableOutProc.;
+  By dta_riferimento cod_istituto cod_collateral cod_sub_collateral;
+  Attrib flgProcClose               Length=$1   Label="Procedure was closed Y/N"
+         nAnniInProc                Length=8    Label="Year opening procedure" format=commax12.
+		 maxAnniInProc              Length=8    Label="Max opening procedura inside sub collateral" format=commax12.
+		 dta_apertura_procedura_max Length=8    Label="Open date corresponding max year" format=ddmmyy10.
+		 dta_chiusura_procedura_max Length=8    Label="Close date corresponding max year" format=ddmmyy10.
+		 cod_procedure_max          Length=$255 Label="Procedure corresponding max year"
+		 cod_pratica_max            Length=$255 Label="Code pratica corresponding max year"
+     ;
+  Length _flgProcOpen $1;
+  Retain maxAnniInProc dta_apertura_procedura_max dta_chiusura_procedura_max . cod_procedure_max cod_pratica_max ' '
+         flgProcClose _flgProcOpen ' '
+    ;
+  if first.cod_sub_collateral then 
+    call missing(maxAnniInProc,dta_apertura_procedura_max,dta_chiusura_procedura_max,cod_procedure_max,cod_pratica_max,_flgProcOpen);
+
+  flgProcClose = ifc(flgLkp_ip_1_3='Y' and (missing(dta_chiusura_procedura) or dta_chiusura_procedura>dta_riferimento),'N','Y');
+  Call Missing(nAnniInProc);
+  if flgProcClose='N' then do; 
+    _flgProcOpen = 'Y';
+    nAnniInProc = intck("year",sum(dta_apertura_procedura,0),dta_riferimento);
+	if nAnniInProc>maxAnniInProc then do;
+	  maxAnniInProc = nAnniInProc;
+	  dta_apertura_procedura_max = dta_apertura_procedura;
+	  dta_chiusura_procedura_max = dta_chiusura_procedura;
+	  cod_procedure_max          = cod_procedure;
+	  cod_pratica_max            = cod_pratica;
+	end;
+  end;
+  Output &tableOutProc. ;
+  if last.cod_sub_collateral and _flgProcOpen='Y' and flgLkp_ip_1_3='Y' then output _sintCollateral;
+Run;
+*-- Agganci gli immobili in procedura estratti direttamente dalla Lotti / Aste;
+Data &tableOutName. (Drop=_:); Set &tableOutName. _sintCollateral(obs=0);
   Attrib anni_in_procedura_lim Length=8 Label="Anni in procedura oltre il quale scatta l'anomalia"
-         ndg_in_procedura_aa   Length=8 Label="No. di anni del debitore in procedura"
            ;
   Retain anni_in_procedura_lim &anni_in_procedura.
      ;
+  If _N_=1 Then Do;
+    Declare hash ht(dataset:"_sintCollateral",ordered:'y');
+	  ht.defineKey("dta_riferimento","cod_istituto","cod_collateral","cod_sub_collateral");
+	  ht.defineData("flgLkp_ip_1_3","dta_apertura_procedura_max","dta_chiusura_procedura_max","cod_procedure_max","cod_pratica_max","maxAnniInProc");
+	  ht.defineDone();
+  End;
   *---[Change Code: GET_ANNI_IN_PROC] -----------------------------;
-  *-- Default value if dta_apertura_procedura is missing;
-  ndg_in_procedura_aa = 99999; 
-  if missing(dta_chiusura_procedura) then ndg_in_procedura_aa = intck("year",dta_apertura_procedura,dta_riferimento);
-  else if dta_chiusura_procedura<=dta_riferimento then ndg_in_procedura_aa=0;
-  else ndg_in_procedura_aa = intck("year",dta_apertura_procedura,dta_riferimento);
+  Call Missing(flgLkp_ip_1_3,dta_apertura_procedura_max,dta_chiusura_procedura_max,cod_procedure_max,cod_pratica_max,maxAnniInProc);
+  _rc = ht.find(key:dta_riferimento,key:cod_istituto,key:cod_collateral,key:cod_sub_collateral);
 Run;
 
 %hx_set_portfolio (dsName=&tableOutName.,_businessKey=cod_collateral);
