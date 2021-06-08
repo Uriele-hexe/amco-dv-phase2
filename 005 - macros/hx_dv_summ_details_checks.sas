@@ -204,6 +204,7 @@
 	End;
 	if cod_portafoglio_gest="_ALL_" Then des_portafoglio_gest = "PORTAFOGLIO TOTALE";
     else _rc = htp.find(key:cod_portafoglio_gest);
+	ruleFlag = ifn(eseguito='Y',1,0);
   Run;
 
   %Uscita:
