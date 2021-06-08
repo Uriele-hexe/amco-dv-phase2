@@ -121,9 +121,10 @@ Proc Sort data=&dsHistRepChecks.;
   By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
 Run;
 Data &dsHistRepChecks.; Merge &dsHistRepChecks. 
-                              _checkImm1 (Drop=des_portafoglio_gest) 
-                              _checkImm2 (Drop=des_portafoglio_gest);
+                              _checkImm1 (Drop=des_portafoglio_gest ruleFlag) 
+                              _checkImm2 (Drop=des_portafoglio_gest ruleFlag);
   By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
+  ruleFlag = ifn(eseguito='Y',1,0);
 Run;
 
 %hx_dwh_run_check_lists(idAmbito=L,dsTarget=datistg.DWH_LOTTI);
@@ -148,9 +149,10 @@ Proc Sort data=&dsHistRepChecks.;
   By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
 Run;
 Data &dsHistRepChecks.; Merge &dsHistRepChecks. 
-                              _checksAste1 (Drop=des_portafoglio_gest) 
-                              _checksAste2 (Drop=des_portafoglio_gest) ;
+                              _checksAste1 (Drop=des_portafoglio_gest ruleFlag) 
+                              _checksAste2 (Drop=des_portafoglio_gest ruleFlag) ;
   By dataProvider cod_ist dta_reference cod_portafoglio_gest idRule;
+  ruleFlag = ifn(eseguito='Y',1,0);
 Run;
 *--------------------------------------------------------*
 *  PER LE ASTE SONO DUE LE TABELLE SOGGETTE A CONTROLLO  *

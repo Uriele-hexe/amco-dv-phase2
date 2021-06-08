@@ -83,7 +83,7 @@ Proc Fcmp outlib=hx_func.cmn_dv_function.package encrypt;
 		rng_limit_sup = 9999999999;
 	  end;
 	  else rng_limit_sup = Symget("rng_limit_sup");
-      fx_return = ifc((imp_valore_ctu>=1 And imp_valore_ctu<10) or imp_valore_ctu=999999999,'Y','N');
+      fx_return = ifc((IMPORTO>=1 And IMPORTO<=10) or IMPORTO=999999999,'Y','N');
 	return (fx_return);
     endsub;
 Run;
